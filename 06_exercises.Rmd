@@ -34,10 +34,11 @@ library(gifski)        # for creating the gif (don't need to load this library e
 library(transformr)    # for "tweening" (gganimate)
 library(shiny)         # for creating interactive apps
 library(patchwork)     # for nicely combining ggplot2 graphs  
-library(gt)            # for creating nice tables
+library(gt)   # for creating nice tables
 library(rvest)         # for scraping data
 library(robotstxt)     # for checking if you can scrape data
 gs4_deauth()           # To not have to authorize each time you knit.
+library(glue)
 theme_set(theme_minimal())
 ```
 
@@ -108,7 +109,54 @@ colors = scales::col_numeric(
   
   
   
+```{r}
+start_date <- "2020-06-06"
+end_date <- "2020-10-03"
+
+garden_harvest %>%
+  dplyr::filter(date >= start_date & date <= end_date) %>%
+  #dplyr::select(-adj_close) %>%
+  gt() %>%
+  tab_header(
+    title = "Lisa's Garden Harvest",
+    subtitle = glue::glue("{start_date} to {end_date}")
+  ) %>%
+  fmt_date(
+    columns = vars(date),
+    date_style = 3
+  ) %>%
+  fmt_number(
+    columns = vars(weight),
+    suffixing = TRUE
+  )
+```
+  
+  
+  
+  
   6. Use `patchwork` operators and functions to combine at least two graphs using your project data or `garden_harvest` data if your project data aren't read.
+  
+```{r}
+g1 <- garden_harvest %>%
+  filter(vegetable %in% "lettuce") %>%
+  ggplot(aes(x=weight)) +
+  geom_histogram() +
+  labs(x="Weight(grams)",
+       y = "Count", 
+       title = "Weight in Grams of Lettuce Harvests")
+  
+g2 <- garden_harvest %>%
+  filter(vegetable %in% "lettuce") %>%
+  ggplot(aes(y= fct_rev(fct_infreq(variety)))) +
+  geom_bar() +
+  labs(x="# of Harvests",
+       y= "Variety of Lettuce",
+       title = "Variety of Lettuce Harvested")
+
+g1 | g2 + 
+  plot_annotation(title = "Look at these cool plots") 
+```
+  
   
   7. COMING SOON! Web scraping problem.
 
