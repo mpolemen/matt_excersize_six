@@ -12,7 +12,7 @@ output:
 
 
 ```{r setup, include=FALSE}
-#knitr::opts_chunk$set(echo = TRUE, error=TRUE, message=FALSE, warning=FALSE)
+knitr::opts_chunk$set(echo = TRUE, error=TRUE, message=FALSE, warning=FALSE)
 ```
 
 ```{r libraries}
@@ -38,6 +38,7 @@ library(gt)   # for creating nice tables
 library(rvest)         # for scraping data
 library(robotstxt)     # for checking if you can scrape data
 gs4_deauth()           # To not have to authorize each time you knit.
+library(rsconnect)
 library(glue)
 theme_set(theme_minimal())
 ```
@@ -81,8 +82,9 @@ ui <- fluidPage(
   selectInput(inputId = "states", 
               label = "Choose a State",
               choices = unique(covid19$state),
-              multiple = TRUE),
-  #submitButton(text = "Create Plot!"),
+              multiple = TRUE,
+              selected = "New York"),
+  submitButton(text = "Create Plot!"),
   plotOutput(outputId = "covidtimeplot")
 )
 
@@ -92,17 +94,17 @@ server <- function(input, output) {
       group_by(state) %>%
       filter(cases >= 20) %>%
       mutate(days_since = as.numeric(difftime(date, lag(date, 1))),
-             Between = ifelse(is.na(days_since), 0, days_since),
-             days_since20 = cumsum(as.numeric(between))) %>%
-      select(~days_since, ~Between) %>%
-      filter(state %in% input$state) %>% 
+             inbetween = ifelse(is.na(days_since), 0, days_since),
+             days_since20 = cumsum(as.numeric(inbetween))) %>%
+      select(-days_since, -inbetween) %>%
+      filter(state %in% input$states) %>% 
       ggplot(aes(x = days_since20 , y = cases, color = state)) +
       geom_line() +
       scale_y_log10() +
-      scale_x_discrete() +
       labs(title = "Days Since 20 Covid Cases by State",
            x = "Days Since 20 Cases",
-           y = "Total Cases")
+           y = "Total Cases",
+           color = "State")
   })
 }
 
@@ -127,12 +129,11 @@ fake_harvest <- read_csv("https://raw.githubusercontent.com/llendway/scraping_et
   
   
 ```{r}
-start_date <- "2020-06-06"
+start_date <- "2020-9-13"
 end_date <- "2020-10-03"
 
 garden_harvest %>%
   dplyr::filter(date >= start_date & date <= end_date) %>%
-  #dplyr::select(-adj_close) %>%
   gt() %>%
   tab_header(
     title = "Lisa's Garden Harvest",
@@ -151,7 +152,7 @@ garden_harvest %>%
   
   
   
-  6. Use `patchwork` operators and functions to combine at least two graphs using your project data or `garden_harvest` data if your project data aren't read.
+  6. Use `patchwork` operators and functions to combine at least two graphs using your project data or `garden_harvest` data if your project data aren't ready.
   
 ```{r}
 g1 <- garden_harvest %>%
@@ -175,7 +176,6 @@ g1 | g2 +
 ```
   
   
-  7. COMING SOON! Web scraping problem.
 
   
 **DID YOU REMEMBER TO UNCOMMENT THE OPTIONS AT THE TOP?**
