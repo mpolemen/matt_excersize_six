@@ -76,6 +76,40 @@ Once your repository is created, you should always open your **project** rather 
 
   1. This app will also use the COVID data. Make sure you load that data and all the libraries you need in the `app.R` file you create. Below, you will post a link to the app that you publish on shinyapps.io. You will create an app to compare states' cumulative number of COVID cases over time. The x-axis will be number of days since 20+ cases and the y-axis will be cumulative cases on the log scale (`scale_y_log10()`). We use number of days since 20+ cases on the x-axis so we can make better comparisons of the curve trajectories. You will have an input box where the user can choose which states to compare (`selectInput()`) and have a submit button to click once the user has chosen all states they're interested in comparing. The graph should display a different line for each state, with labels either on the graph or in a legend. Color can be used if needed.
   
+```{r}
+ui <- fluidPage(
+  selectInput(inputId = "states", 
+              label = "Choose a State",
+              choices = unique(covid19$state),
+              multiple = TRUE),
+  #submitButton(text = "Create Plot!"),
+  plotOutput(outputId = "covidtimeplot")
+)
+
+server <- function(input, output) {
+  output$covidtimeplot <- renderPlot({
+    covid19 %>% 
+      group_by(state) %>%
+      filter(cases >= 20) %>%
+      mutate(days_since = as.numeric(difftime(date, lag(date, 1))),
+             Between = ifelse(is.na(days_since), 0, days_since),
+             days_since20 = cumsum(as.numeric(between))) %>%
+      select(~days_since, ~Between) %>%
+      filter(state %in% input$state) %>% 
+      ggplot(aes(x = days_since20 , y = cases, color = state)) +
+      geom_line() +
+      scale_y_log10() +
+      scale_x_discrete() +
+      labs(title = "Days Since 20 Covid Cases by State",
+           x = "Days Since 20 Cases",
+           y = "Total Cases")
+  })
+}
+
+shinyApp(ui = ui, server = server)
+```
+  
+  
 
   
 ## Warm-up exercises from tutorial
@@ -87,25 +121,6 @@ fake_harvest <- read_csv("https://raw.githubusercontent.com/llendway/scraping_et
     col_types = cols(X1 = col_skip(), weight = col_number()), 
     na = "MISSING", skip = 2)
 ```
-  
-  
-  3. Read in this [data](https://www.kaggle.com/heeraldedhia/groceries-dataset) from the kaggle website. You will need to download the data first. Save it to your project/repo folder. Do some quick checks of the data to assure it has been read in appropriately.
-  
-```{r}
-kaggle <- read_csv("Groceries_dataset.csv")
-```
-  
-
-  4. Write code to replicate the table shown below (open the .html file to see it) created from the `garden_harvest` data as best as you can. When you get to coloring the cells, I used the following line of code for the `colors` argument:
-  
-```{r, eval=FALSE}
-colors = scales::col_numeric(
-      palette = paletteer::paletteer_d(
-        palette = "RColorBrewer::YlGn"
-      ) %>% as.character()
-```
-
-
 
   5. Create a table using `gt` with data from your project or from the `garden_harvest` data if your project data aren't ready.
   
